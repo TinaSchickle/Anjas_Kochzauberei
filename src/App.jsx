@@ -6,6 +6,7 @@ import Planner from './components/Planner'
 import ShoppingList from './components/ShoppingList'
 import RecipeView from './components/RecipeView'
 import RecipeForm from './components/RecipeForm'
+import PhotoInbox from './components/PhotoInbox'
 
 export default function App() {
   const [recipes, setRecipes] = useState([])
@@ -151,6 +152,10 @@ export default function App() {
             recipes={recipes}
             onBack={openPlanner}
           />
+        )}
+
+        {view.name === 'inbox' && (
+          <PhotoInbox onOpenRecipe={openRecipe} />
         )}
 
         {view.name === 'recipe' && current && (

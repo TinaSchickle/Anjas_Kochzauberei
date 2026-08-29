@@ -1,5 +1,5 @@
 import { isCloud } from '../lib/storage'
-import { BookIcon, CalendarIcon, PlusIcon } from './icons'
+import { BookIcon, CalendarIcon, CameraIcon, PlusIcon } from './icons'
 
 export default function Header({
   onLogoClick,
@@ -9,7 +9,7 @@ export default function Header({
   plannerCount,
   onNavigate,
 }) {
-  const showNav = ['overview', 'planner', 'shopping'].includes(view)
+  const showNav = ['overview', 'planner', 'shopping', 'inbox'].includes(view)
 
   return (
     <header className="sticky top-0 z-20 backdrop-blur bg-cream-50/80 border-b border-cream-200/70">
@@ -43,6 +43,12 @@ export default function Header({
               icon={<CalendarIcon width={18} height={18} />}
               label="Planer"
               badge={plannerCount}
+            />
+            <NavItem
+              active={view === 'inbox'}
+              onClick={() => onNavigate('inbox')}
+              icon={<CameraIcon width={18} height={18} />}
+              label="Fotos"
             />
           </nav>
         )}

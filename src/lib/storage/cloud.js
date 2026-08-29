@@ -11,6 +11,8 @@ import {
   RECIPES_TABLE,
   PLANNER_TABLE,
   IMAGE_BUCKET,
+  INBOX_TABLE,
+  INBOX_BUCKET,
   isCloudConfigured,
 } from '../config'
 import { uid } from '../uid'
@@ -176,4 +178,69 @@ export async function uploadImage(file) {
   if (error) throw error
   const { data } = supabase.storage.from(IMAGE_BUCKET).getPublicUrl(path)
   return data.publicUrl
+}
+
+// --- Foto-Inbox -----------------------------------------------------------
+// Tabelle INBOX_TABLE: id (uuid, pk) | image_url (text) | note (text)
+//   | status (text: 'offen' | 'erledigt') | recipe_id (uuid, nullable)
+//   | created_at (timestamptz)
+// Bilder liegen im öffentlichen Bucket INBOX_BUCKET. Claude tippt die offenen
+// Fotos später in die Rezeptliste ab und setzt sie auf 'erledigt'.
+
+function rowToInboxPhoto(row) {
+  return {
+    id: row.id,
+    imageUrl: row.image_url,
+    note: row.note || '',
+    status: row.status || 'offen',
+    recipeId: row.recipe_id || null,
+    createdAt: row.created_at,
+  }
+}
+
+export async function uploadInboxImage(file) {
+  const ext = (file.name?.split('.').pop() || 'jpg').toLowerCase()
+  const path = `${uid()}.${ext}`
+  const { error } = await supabase.storage
+    .from(INBOX_BUCKET)
+    .upload(path, file, { cacheControl: '3600', upsert: false })
+  if (error) throw error
+  const { data } = supabase.storage.from(INBOX_BUCKET).getPublicUrl(path)
+  return data.publicUrl
+}
+
+export async function listInbox() {
+  const { data, error } = await supabase
+    .from(INBOX_TABLE)
+    .select('*')
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return (data || []).map(rowToInboxPhoto)
+}
+
+export async function addInboxPhoto(imageUrl, note = '') {
+  const { data, error } = await supabase
+    .from(INBOX_TABLE)
+    .insert({ image_url: imageUrl, note })
+    .select()
+    .single()
+  if (error) throw error
+  return rowToInboxPhoto(data)
+}
+
+export async function updateInboxPhoto(id, fields) {
+  const row = {}
+  if ('note' in fields) row.note = fields.note
+  if ('status' in fields) row.status = fields.status
+  if ('recipeId' in fields) row.recipe_id = fields.recipeId
+  const { error } = await supabase
+    .from(INBOX_TABLE)
+    .update(row)
+    .eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteInboxPhoto(id) {
+  const { error } = await supabase.from(INBOX_TABLE).delete().eq('id', id)
+  if (error) throw error
 }

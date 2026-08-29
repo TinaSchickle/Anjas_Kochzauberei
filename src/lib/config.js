@@ -18,5 +18,8 @@ export const SUPABASE_ANON_KEY =
 export const RECIPES_TABLE = 'anja_recipes'
 export const PLANNER_TABLE = 'anja_planner'
 export const IMAGE_BUCKET = 'anja-recipe-images'
+// Rezeptfotos, die noch abgetippt werden müssen (Foto-Inbox, 3. Tab).
+export const INBOX_TABLE = 'anja_recipe_inbox'
+export const INBOX_BUCKET = 'anja-recipe-inbox'
 
 export const isCloudConfigured = Boolean(SUPABASE_URL && SUPABASE_ANON_KEY)

@@ -109,3 +109,65 @@ export async function uploadImage(file) {
     reader.readAsDataURL(file)
   })
 }
+
+// --- Foto-Inbox: Rezeptfotos, die noch abgetippt werden müssen ------------
+// Nur ein lokaler Fallback — ohne Supabase kann Claude ohnehin nicht
+// hineinschauen. Jeder Eintrag: { id, imageUrl, note, status, recipeId, createdAt }
+
+const INBOX_KEY = 'anjas-kochzauberei.inbox.v1'
+
+function readInbox() {
+  try {
+    const raw = localStorage.getItem(INBOX_KEY)
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function writeInbox(list) {
+  localStorage.setItem(INBOX_KEY, JSON.stringify(list))
+}
+
+export async function uploadInboxImage(file) {
+  return await new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+export async function listInbox() {
+  return readInbox().sort((a, b) =>
+    (b.createdAt || '').localeCompare(a.createdAt || ''),
+  )
+}
+
+export async function addInboxPhoto(imageUrl, note = '') {
+  const list = readInbox()
+  const entry = {
+    id: 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+    imageUrl,
+    note,
+    status: 'offen',
+    recipeId: null,
+    createdAt: new Date().toISOString(),
+  }
+  list.push(entry)
+  writeInbox(list)
+  return entry
+}
+
+export async function updateInboxPhoto(id, fields) {
+  const list = readInbox()
+  const idx = list.findIndex((e) => e.id === id)
+  if (idx >= 0) {
+    list[idx] = { ...list[idx], ...fields }
+    writeInbox(list)
+  }
+}
+
+export async function deleteInboxPhoto(id) {
+  writeInbox(readInbox().filter((e) => e.id !== id))
+}
