@@ -84,25 +84,21 @@ export default function Overview({
 
   return (
     <div className="mt-4">
-      {/* Kategorie-Tabs — alle sichtbar (umbrechend), auch auf dem Handy */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        <Tab
-          label="Alle"
-          active={category === 'all'}
-          count={counts.all}
-          onClick={() => setCategory('all')}
-          allTab
-        />
-        {CATEGORIES.map((cat) => (
-          <Tab
-            key={cat.id}
-            label={cat.label}
-            emoji={cat.emoji}
-            active={category === cat.id}
-            count={counts[cat.id]}
-            onClick={() => setCategory(cat.id)}
-          />
-        ))}
+      {/* Kategorie-Filter */}
+      <div className="mb-3">
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          className="field sm:max-w-xs"
+          aria-label="Nach Kategorie filtern"
+        >
+          <option value="all">Alle ({counts.all})</option>
+          {CATEGORIES.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.emoji} {cat.label} ({counts[cat.id]})
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Titelsuche + Ansicht-Umschalter */}
@@ -207,29 +203,6 @@ export default function Overview({
         </div>
       )}
     </div>
-  )
-}
-
-function Tab({ label, emoji, active, count, onClick, allTab }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold transition-all ${
-        active
-          ? 'bg-terracotta-500 text-white shadow-soft'
-          : 'bg-white/70 text-cocoa-600 hover:bg-white'
-      }`}
-    >
-      {!allTab && <span>{emoji}</span>}
-      {label}
-      <span
-        className={`text-xs rounded-full px-1.5 ${
-          active ? 'bg-white/25' : 'bg-cream-200 text-cocoa-400'
-        }`}
-      >
-        {count}
-      </span>
-    </button>
   )
 }
 
