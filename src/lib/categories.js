@@ -5,6 +5,7 @@ export const CATEGORIES = [
   { id: 'kuchen', label: 'Kuchen', emoji: '\u{1F370}' }, // 🍰
   { id: 'vorspeisen', label: 'Vorspeisen', emoji: '\u{1F957}' }, // 🥗
   { id: 'partysnacks', label: 'Partysnacks', emoji: '\u{1F37F}' }, // 🍿
+  { id: 'aufstriche', label: 'Aufstriche', emoji: '\u{1F9C8}' }, // 🧈
 ]
 
 export const CATEGORY_MAP = Object.fromEntries(

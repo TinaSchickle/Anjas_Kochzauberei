@@ -9,8 +9,8 @@ Schritt darunter.
 - **Portionen-Faktor** — beliebige Zahl in 0,5er-Schritten (Standard & Minimum 1);
   jede Mengenangabe skaliert live mit. `200 g` ×3 → `600 g`. Mengen sind Freitext,
   daher bleibt „Salz“ ohne Zahl einfach „Salz“.
-- **Kategorien** — Deftig · Nachtisch · Kuchen · Vorspeisen · Partysnacks
-  (pro Rezept gewählt).
+- **Kategorien** — Deftig · Nachtisch · Kuchen · Vorspeisen · Partysnacks ·
+  Aufstriche (pro Rezept gewählt).
 - **Übersicht** aller Rezepte als **Foto-Galerie** oder **Titelliste**.
 - **Zutatenfilter** — Checkbox-Liste aus allen Zutaten deiner Rezepte; mehrere
   anhaken findet Rezepte, die *alle* davon enthalten.
