@@ -1,0 +1,8 @@
+// Small stable unique-id helper (works everywhere, unlike crypto.randomUUID
+// in some older mobile browsers).
+export function uid() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+    return crypto.randomUUID()
+  }
+  return 'id-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10)
+}
