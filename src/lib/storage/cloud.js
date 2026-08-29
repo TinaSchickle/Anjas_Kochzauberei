@@ -241,6 +241,18 @@ export async function updateInboxPhoto(id, fields) {
 }
 
 export async function deleteInboxPhoto(id) {
+  // Erst das zugehörige Bild aus dem Bucket holen, dann Zeile + Datei löschen,
+  // damit keine verwaisten Uploads im Storage zurückbleiben.
+  const { data: row } = await supabase
+    .from(INBOX_TABLE)
+    .select('image_url')
+    .eq('id', id)
+    .maybeSingle()
   const { error } = await supabase.from(INBOX_TABLE).delete().eq('id', id)
   if (error) throw error
+  const marker = `/${INBOX_BUCKET}/`
+  const path = row?.image_url?.split(marker)[1]
+  if (path) {
+    await supabase.storage.from(INBOX_BUCKET).remove([path]).catch(() => {})
+  }
 }
