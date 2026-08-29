@@ -107,9 +107,11 @@ export default function RecipeForm({ initial, onCancel, onSave }) {
           <ArrowLeftIcon width={18} height={18} />
           Abbrechen
         </button>
-        <h1 className="font-display text-2xl font-semibold text-cocoa-800">
-          {isEdit ? 'Rezept bearbeiten' : 'Neues Rezept'}
-        </h1>
+        {!isEdit && (
+          <h1 className="font-display text-2xl font-semibold text-cocoa-800">
+            Neues Rezept
+          </h1>
+        )}
         <button className="btn-primary" onClick={submit} disabled={!canSave}>
           <CheckIcon width={18} height={18} />
           {saving ? 'Speichern…' : 'Speichern'}
