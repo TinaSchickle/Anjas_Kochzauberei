@@ -111,3 +111,37 @@ values (
   ]$json$::jsonb
 )
 on conflict (id) do nothing;
+
+-- 5) Start-Rezept: Apfel-Zimt-Muffins in "Kuchen" -------------------------
+-- Aus kitchenMagic übernommen (dort Kategorie "sweet").
+insert into public.anja_recipes (id, title, category, image_url, makes, comment, ingredients, steps)
+values (
+  '28dc652f-3a24-438a-ac0a-2cf8ff6a90c2',
+  'Apfel-Zimt-Muffins',
+  'kuchen',
+  'https://wscuovmzdbhwugxsgfjw.supabase.co/storage/v1/object/public/recipe-images/780d8373-cee3-4d2f-b993-c52b7306551a.jpg',
+  14,
+  '',
+  $json$[
+    {"id":"35032e93-b610-494c-a51e-838c5108ddb4","name":"Mehl","amount":"300 g"},
+    {"id":"b739c3ea-b718-4dca-951b-d44f4aa815ae","name":"Backpulver","amount":"1 EL"},
+    {"id":"d42c89ae-61d4-4e00-8512-a1ed83048868","name":"Zucker","amount":"150 g"},
+    {"id":"535940ba-4851-426e-93bc-8f39a03a73dc","name":"Vanillezucker","amount":"1 Pk"},
+    {"id":"f0b790f2-2047-43fc-8b2c-97a5cb0caf6b","name":"Ei","amount":"1"},
+    {"id":"0e69f80a-3dc3-471e-ab58-f72b95f26851","name":"Rapsöl oder Olivenöl","amount":"200 ml"},
+    {"id":"a44da95a-e508-417a-b338-6cf8c683b93b","name":"Zimt","amount":"1 TL"},
+    {"id":"c3f0f147-82b2-44df-a89e-417a1902ae95","name":"Orangen (Saft)","amount":"1–2"},
+    {"id":"fd47dc84-c721-4d7d-b7eb-3ed215a6623b","name":"Äpfel (geraspelt)","amount":"2"},
+    {"id":"1bd9573a-b314-472d-b7ea-edadf4b917cb","name":"Rotwein","amount":"1 Schuss"},
+    {"id":"8a58e1b4-f22f-4983-b686-eb9dba573335","name":"Bananen","amount":"optional 1–3"},
+    {"id":"f5a25008-f20e-446b-8efa-a9859f946dc9","name":"Schoko-Chips, Kakao","amount":"optional"},
+    {"id":"b032fea6-d999-4e83-bd1a-a17fb75f53e4","name":"Apfel in feine Scheiben gehobelt","amount":""},
+    {"id":"549f94b5-d898-472f-b0b1-7e9d631764a7","name":"Puderzucker zum bestreuen","amount":""},
+    {"id":"e172b628-2e27-4a53-b5a3-cf693b87a97b","name":"Zimt_2","amount":""}
+  ]$json$::jsonb,
+  $json$[
+    {"id":"2b4b05dc-e16c-4b8b-a982-1d2cb50e9538","text":"Ofen auf 200 °C vorheizen. [Zucker], [Vanillezucker], [Rapsöl oder Olivenöl], [Ei] und [Zimt] in einer Schüssel vermixen. [Mehl] mit [Backpulver] vermengen und nach und nach unter den Teig rühren. [Orangen (Saft)] und einen Schuss [Rotwein] zugeben. [Äpfel (geraspelt)] schälen, entkernen und raspeln, unter den Teig heben (optional [Bananen], [Schoko-Chips, Kakao]). Teig mit einem Löffel (Tipp: Eisportionierer) in Muffinförmchen füllen. Bei 200 °C ca. 20 Min backen, bis sie goldbraun sind."},
+    {"id":"d23000bd-f148-4ccf-a617-ea5dc667c4d4","text":"Topping:\n4 EL [Puderzucker zum bestreuen] und 1/2 TL [Zimt_2] mixen und über die Muffins sieben.\n\nFür die Apfelchips [Apfel in feine Scheiben gehobelt] auf ein mit Backpapier belegtes Blech legen. Mit wenig [Puderzucker zum bestreuen] bestreuen. Im auf 100 °C zurückgestellten Ofen ca. 1 Stunde trocknen lassen. Nach der Hälfte der Trocknungszeit wenden.\n\nDann Apfelchips auf die Muffins legen."}
+  ]$json$::jsonb
+)
+on conflict (id) do nothing;

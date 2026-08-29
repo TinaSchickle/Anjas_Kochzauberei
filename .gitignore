@@ -17,6 +17,9 @@ dist-ssr
 .env.*
 !.env.example
 
+# Icon-Quelldatei (die fertigen Icons liegen in public/)
+logo-quelle.*
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
