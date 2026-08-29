@@ -134,25 +134,17 @@ export default function RecipeForm({ initial, onCancel, onSave }) {
         <label className="block text-sm font-bold text-cocoa-600 mt-5 mb-2">
           Kategorie
         </label>
-        <div className="flex flex-wrap gap-2">
-          {CATEGORIES.map((cat) => {
-            const active = recipe.category === cat.id
-            return (
-              <button
-                key={cat.id}
-                onClick={() => patch({ category: cat.id })}
-                className={`chip px-4 py-2 transition-all ${
-                  active
-                    ? 'bg-terracotta-500 text-white shadow-soft'
-                    : 'bg-white text-cocoa-600 border border-cream-200 hover:border-terracotta-300'
-                }`}
-              >
-                <span>{cat.emoji}</span>
-                {cat.label}
-              </button>
-            )
-          })}
-        </div>
+        <select
+          value={recipe.category}
+          onChange={(e) => patch({ category: e.target.value })}
+          className="field"
+        >
+          {CATEGORIES.map((cat) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.emoji} {cat.label}
+            </option>
+          ))}
+        </select>
 
         <label className="block text-sm font-bold text-cocoa-600 mt-5 mb-2">
           Menge
