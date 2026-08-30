@@ -8,13 +8,44 @@ import RecipeView from './components/RecipeView'
 import RecipeForm from './components/RecipeForm'
 import PhotoInbox from './components/PhotoInbox'
 
+// Zuletzt geöffnete Ansicht merken, damit die App nach kurzem Verlassen
+// (Backgrounding, Neuladen der PWA) wieder dort landet statt in der Übersicht.
+const VIEW_KEY = 'anjas-kochzauberei.view.v1'
+
+function loadView() {
+  try {
+    const v = JSON.parse(localStorage.getItem(VIEW_KEY))
+    if (v && typeof v.name === 'string') return v
+  } catch {
+    // kein/kaputter Eintrag → Übersicht
+  }
+  return { name: 'overview' }
+}
+
 export default function App() {
   const [recipes, setRecipes] = useState([])
   const [planner, setPlanner] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   // view: overview | planner | shopping | recipe | form
-  const [view, setView] = useState({ name: 'overview' })
+  const [view, setView] = useState(loadView)
+
+  // Ansicht bei jeder Änderung sichern. Das Bearbeiten-Formular wird nicht
+  // wiederhergestellt (ungespeicherte Eingaben gingen ohnehin verloren) —
+  // stattdessen die zugehörige Rezeptseite bzw. die Übersicht.
+  useEffect(() => {
+    const toStore =
+      view.name === 'form'
+        ? view.id
+          ? { name: 'recipe', id: view.id }
+          : { name: 'overview' }
+        : view
+    try {
+      localStorage.setItem(VIEW_KEY, JSON.stringify(toStore))
+    } catch {
+      // Speicher nicht verfügbar → einfach nichts merken
+    }
+  }, [view])
 
   const refresh = useCallback(async () => {
     try {
