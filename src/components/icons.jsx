@@ -168,6 +168,14 @@ export const BookIcon = (p) => (
   </svg>
 )
 
+export const PrinterIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M6 9V3h12v6" />
+    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+    <path d="M7 14h10v7H7z" />
+  </svg>
+)
+
 export const RotateIcon = (p) => (
   <svg {...base} {...p}>
     <path d="M21 12a9 9 0 1 1-3-6.7" />
