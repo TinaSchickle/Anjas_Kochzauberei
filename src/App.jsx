@@ -102,6 +102,13 @@ export default function App() {
     openRecipe(saved.id)
   }
 
+  // Still speichern, ohne die Ansicht zu wechseln (z. B. Foto-Änderung im
+  // Bearbeiten-Formular eines bereits existierenden Rezepts).
+  const persistRecipe = async (recipe) => {
+    await storage.saveRecipe(recipe)
+    await refresh()
+  }
+
   const handleDelete = async (id) => {
     await storage.deleteRecipe(id)
     await storage.removeFromPlanner(id)
@@ -209,6 +216,7 @@ export default function App() {
             initial={current}
             onCancel={view.id ? () => openRecipe(view.id) : openOverview}
             onSave={handleSave}
+            onPersist={persistRecipe}
           />
         )}
       </main>

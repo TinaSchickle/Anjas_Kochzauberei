@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CATEGORIES } from '../lib/categories'
 import { newIngredient, newRecipe, newStep } from '../lib/model'
 import { uploadImage } from '../lib/storage'
@@ -21,11 +21,18 @@ function cloneOrNew(initial) {
   return JSON.parse(JSON.stringify(initial))
 }
 
-export default function RecipeForm({ initial, onCancel, onSave }) {
+export default function RecipeForm({ initial, onCancel, onSave, onPersist }) {
   const [recipe, setRecipe] = useState(() => cloneOrNew(initial))
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [photoSaved, setPhotoSaved] = useState(false)
   const isEdit = Boolean(initial)
+
+  useEffect(() => {
+    if (!photoSaved) return
+    const t = setTimeout(() => setPhotoSaved(false), 2500)
+    return () => clearTimeout(t)
+  }, [photoSaved])
 
   const canSave = recipe.title.trim().length > 0 && !uploading && !saving
 
@@ -66,35 +73,71 @@ export default function RecipeForm({ initial, onCancel, onSave }) {
       steps: r.steps.length > 1 ? r.steps.filter((s) => s.id !== stepId) : r.steps,
     }))
 
-  const onPickImage = async (e) => {
-    const file = e.target.files?.[0]
-    e.target.value = '' // erneutes Auswählen derselben Datei erlauben
+  // Bild setzen/entfernen. Wenn das Rezept schon existiert (kein Neuanlegen),
+  // wird die Änderung sofort gespeichert — Foto braucht kein „Speichern".
+  const setImage = async (url) => {
+    patch({ image: url })
+    if (isEdit && onPersist) {
+      try {
+        await onPersist({ ...recipe, image: url })
+        setPhotoSaved(true)
+      } catch (err) {
+        console.error(err)
+        alert('Das Foto konnte nicht gespeichert werden: ' + (err.message || err))
+      }
+    }
+  }
+
+  // Eine Bilddatei hochladen und ans Rezept hängen — genutzt von Dateiauswahl,
+  // Einfügen (Strg/⌘+V), Drag & Drop und dem Bild-Editor.
+  const uploadAndSet = async (file, failMsg) => {
     if (!file) return
     try {
       setUploading(true)
       const url = await uploadImage(file)
-      patch({ image: url })
+      await setImage(url)
     } catch (err) {
       console.error(err)
-      alert('Das Bild konnte nicht hinzugefügt werden: ' + (err.message || err))
+      alert(failMsg + (err.message || err))
     } finally {
       setUploading(false)
     }
   }
 
-  // Vom Bild-Editor (Drehen/Zuschneiden) zurückgegebene Datei hochladen.
-  const applyEditedImage = async (file) => {
-    try {
-      setUploading(true)
-      const url = await uploadImage(file)
-      patch({ image: url })
-    } catch (err) {
-      console.error(err)
-      alert('Das Bild konnte nicht bearbeitet werden: ' + (err.message || err))
-    } finally {
-      setUploading(false)
-    }
+  const onPickImage = (e) => {
+    const file = e.target.files?.[0]
+    e.target.value = '' // erneutes Auswählen derselben Datei erlauben
+    uploadAndSet(file, 'Das Bild konnte nicht hinzugefügt werden: ')
   }
+
+  const applyEditedImage = (file) =>
+    uploadAndSet(file, 'Das Bild konnte nicht bearbeitet werden: ')
+
+  // Bild aus der Zwischenablage einfügen (Strg/⌘+V), egal wo der Fokus liegt.
+  useEffect(() => {
+    const onPaste = (e) => {
+      if (uploading) return
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const it of items) {
+        if (it.type?.startsWith('image/')) {
+          const blob = it.getAsFile()
+          if (blob) {
+            e.preventDefault()
+            const ext = (it.type.split('/')[1] || 'png').replace('jpeg', 'jpg')
+            const file = new File([blob], `einfuegen.${ext}`, { type: it.type })
+            uploadAndSet(
+              file,
+              'Das eingefügte Bild konnte nicht übernommen werden: ',
+            )
+          }
+          return
+        }
+      }
+    }
+    document.addEventListener('paste', onPaste)
+    return () => document.removeEventListener('paste', onPaste)
+  }, [uploading])
 
   const submit = async () => {
     if (!canSave) return
@@ -240,9 +283,19 @@ export default function RecipeForm({ initial, onCancel, onSave }) {
           image={recipe.image}
           uploading={uploading}
           onPick={onPickImage}
-          onRemove={() => patch({ image: null })}
+          onRemove={() => setImage(null)}
           onApplyEdit={applyEditedImage}
+          onDropFile={(file) =>
+            uploadAndSet(file, 'Das Bild konnte nicht hinzugefügt werden: ')
+          }
         />
+        {isEdit && (
+          <p className="text-xs text-cocoa-400 mt-1.5">
+            {photoSaved
+              ? '✓ Foto gespeichert'
+              : 'Foto-Änderungen werden sofort gespeichert.'}
+          </p>
+        )}
       </div>
 
       {/* Kommentar */}
@@ -363,8 +416,26 @@ export default function RecipeForm({ initial, onCancel, onSave }) {
   )
 }
 
-function ImagePicker({ image, uploading, onPick, onRemove, onApplyEdit }) {
+function ImagePicker({
+  image,
+  uploading,
+  onPick,
+  onRemove,
+  onApplyEdit,
+  onDropFile,
+}) {
   const [editing, setEditing] = useState(false)
+  const [dragOver, setDragOver] = useState(false)
+
+  const handleDrop = (e) => {
+    e.preventDefault()
+    setDragOver(false)
+    const file = [...(e.dataTransfer?.files || [])].find((f) =>
+      f.type.startsWith('image/'),
+    )
+    if (file) onDropFile?.(file)
+  }
+
   return (
     <div>
       {image ? (
@@ -399,14 +470,29 @@ function ImagePicker({ image, uploading, onPick, onRemove, onApplyEdit }) {
           )}
         </div>
       ) : (
-        <label className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-cream-200 bg-cream-50 py-8 cursor-pointer hover:border-terracotta-300 hover:bg-terracotta-50/40 transition">
+        <label
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragOver(true)
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={handleDrop}
+          className={`flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed py-8 cursor-pointer transition ${
+            dragOver
+              ? 'border-terracotta-400 bg-terracotta-50/60'
+              : 'border-cream-200 bg-cream-50 hover:border-terracotta-300 hover:bg-terracotta-50/40'
+          }`}
+        >
           <span className="grid place-items-center w-12 h-12 rounded-full bg-white text-terracotta-500 shadow-soft">
             <CameraIcon />
           </span>
           <span className="text-cocoa-600 font-semibold">
             {uploading ? 'Wird hochgeladen…' : 'Foto hinzufügen'}
           </span>
-          <span className="text-xs text-cocoa-400">zum Auswählen tippen</span>
+          <span className="text-xs text-cocoa-400 text-center px-4">
+            tippen zum Auswählen · oder Bild einfügen (Strg/⌘ + V) bzw.
+            hierher ziehen
+          </span>
           <input
             type="file"
             accept="image/*"
