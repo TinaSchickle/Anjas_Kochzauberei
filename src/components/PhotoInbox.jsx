@@ -11,6 +11,7 @@ export default function PhotoInbox({ onOpenRecipe }) {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const fileRef = useRef(null)
+  const cameraRef = useRef(null)
 
   const refresh = async () => {
     try {
@@ -101,19 +102,37 @@ export default function PhotoInbox({ onOpenRecipe }) {
             {openCount > 0 && ` · ${openCount} offen`}
           </p>
         </div>
-        <button
-          className="btn-primary"
-          onClick={() => fileRef.current?.click()}
-          disabled={uploading}
-        >
-          <PlusIcon width={18} height={18} />
-          {uploading ? 'Wird hochgeladen…' : 'Fotos hinzufügen'}
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <button
+            className="btn-primary"
+            onClick={() => cameraRef.current?.click()}
+            disabled={uploading}
+          >
+            <CameraIcon width={18} height={18} />
+            {uploading ? 'Wird hochgeladen…' : 'Foto aufnehmen'}
+          </button>
+          <button
+            className="btn-soft"
+            onClick={() => fileRef.current?.click()}
+            disabled={uploading}
+          >
+            <PlusIcon width={18} height={18} />
+            Aus Galerie
+          </button>
+        </div>
         <input
           ref={fileRef}
           type="file"
           accept="image/*"
           multiple
+          className="hidden"
+          onChange={onPick}
+        />
+        <input
+          ref={cameraRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
           className="hidden"
           onChange={onPick}
         />
@@ -134,13 +153,22 @@ export default function PhotoInbox({ onOpenRecipe }) {
           <p className="text-cocoa-400 mt-1 mb-5">
             Lade Fotos von Rezeptkarten, Kochbuchseiten oder Notizzetteln hoch.
           </p>
-          <button
-            className="btn-primary"
-            onClick={() => fileRef.current?.click()}
-          >
-            <CameraIcon width={18} height={18} />
-            Fotos hinzufügen
-          </button>
+          <div className="flex flex-wrap gap-2 justify-center">
+            <button
+              className="btn-primary"
+              onClick={() => cameraRef.current?.click()}
+            >
+              <CameraIcon width={18} height={18} />
+              Foto aufnehmen
+            </button>
+            <button
+              className="btn-soft"
+              onClick={() => fileRef.current?.click()}
+            >
+              <PlusIcon width={18} height={18} />
+              Aus Galerie
+            </button>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">

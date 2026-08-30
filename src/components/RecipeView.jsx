@@ -2,6 +2,7 @@ import { useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import { CATEGORY_MAP } from '../lib/categories'
 import { scaleAmount } from '../lib/scale'
+import { buildPrintNode, waitForImages } from '../lib/printRecipe'
 import PortionStepper, { formatPortions } from './PortionStepper'
 import StepText from './StepText'
 import {
@@ -19,33 +20,25 @@ function safeName(title) {
   return (title || 'Rezept').replace(/[\\/:*?"<>|]+/g, ' ').trim()
 }
 
-// Kurz auf den nächsten Frame warten (damit der DOM-Wechsel Stepper ->
-// statischer Text gezeichnet ist), aber mit Timeout-Fallback, falls
-// requestAnimationFrame pausiert (Tab/Fenster im Hintergrund).
-function nextPaint() {
-  return new Promise((resolve) => {
-    let done = false
-    const finish = () => {
-      if (done) return
-      done = true
-      resolve()
-    }
-    requestAnimationFrame(() => requestAnimationFrame(finish))
-    setTimeout(finish, 300)
-  })
-}
-
-// Rendert die Rezeptkarte in ein Canvas (statische Portionsanzeige statt
-// interaktivem Stepper — das Umschalten passiert über den `busy`-State).
-async function renderRecipeCanvas(node) {
-  await nextPaint()
-  return html2canvas(node, {
-    backgroundColor: '#F2F8F8',
-    useCORS: true,
-    scale: 1.5,
-    windowWidth: document.documentElement.offsetWidth,
-    windowHeight: document.documentElement.offsetHeight,
-  })
+// Rendert eine schlichte Schwarz-Weiß-Fassung des Rezepts (weißer Hintergrund,
+// schwarzer Text, kein farbliches Hervorheben) in ein Canvas. Statt die
+// gestylte Live-Karte abzufotografieren, wird ein eigener, einfacher
+// DOM-Knoten aufgebaut — so verrutschen weder Bild noch Text.
+async function renderRecipeCanvas(recipe, portions) {
+  const node = buildPrintNode(recipe, portions)
+  document.body.appendChild(node)
+  try {
+    await waitForImages(node)
+    return await html2canvas(node, {
+      backgroundColor: '#ffffff',
+      useCORS: true,
+      scale: 2,
+      windowWidth: node.offsetWidth,
+      windowHeight: node.offsetHeight,
+    })
+  } finally {
+    node.remove()
+  }
 }
 
 // Baut aus dem Canvas eine einseitige PDF, in die das Bild als JPEG 1:1
@@ -167,7 +160,7 @@ export default function RecipeView({
     if (!shareRef.current || busy) return
     setBusy('pdf')
     try {
-      const canvas = await renderRecipeCanvas(shareRef.current)
+      const canvas = await renderRecipeCanvas(recipe, portions)
       const blob = await canvasToPdfBlob(canvas)
       const filename = `${safeName(recipe.title)}.pdf`
       const file = new File([blob], filename, { type: 'application/pdf' })
@@ -195,7 +188,7 @@ export default function RecipeView({
     if (!shareRef.current || busy) return
     setBusy('print')
     try {
-      const canvas = await renderRecipeCanvas(shareRef.current)
+      const canvas = await renderRecipeCanvas(recipe, portions)
       printImage(canvas.toDataURL('image/jpeg', 0.95), recipe.title)
     } catch (err) {
       console.error(err)
