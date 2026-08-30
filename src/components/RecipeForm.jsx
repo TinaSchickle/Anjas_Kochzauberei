@@ -13,6 +13,7 @@ import {
 } from './icons'
 import ImageEditor from './ImageEditor'
 import StepText from './StepText'
+import { referencedIngredientNames } from '../lib/stepText'
 
 // Tiefe Kopie, damit Änderungen das gespeicherte Rezept erst beim Speichern
 // verändern.
@@ -386,6 +387,7 @@ export default function RecipeForm({ initial, onCancel, onSave, onPersist }) {
             number={i + 1}
             canRemove={recipe.steps.length > 1}
             ingredients={recipe.ingredients}
+            usedRefNames={referencedIngredientNames(recipe.steps)}
             onChangeText={(v) => updateStep(step.id, v)}
             onRemoveStep={() => removeStep(step.id)}
           />
@@ -526,6 +528,7 @@ function StepEditor({
   number,
   canRemove,
   ingredients,
+  usedRefNames,
   onChangeText,
   onRemoveStep,
 }) {
@@ -535,12 +538,24 @@ function StepEditor({
   const trackCursor = (e) => setCursor(e.target.selectionStart)
 
   const suggestion = openBracketQuery(step.text, cursor)
+  // Nur Zutaten anbieten, die noch nirgends in der Beschreibung als [Zutat]
+  // eingefügt wurden — jede Zutat darf im gesamten Text nur einmal vorkommen.
+  const used = usedRefNames || new Set()
+  const matchesQuery = (ing) =>
+    ing.name &&
+    ing.name.toLowerCase().includes(suggestion.query.toLowerCase())
   const matches = suggestion
     ? (ingredients || []).filter(
-        (ing) =>
-          ing.name && ing.name.toLowerCase().includes(suggestion.query.toLowerCase()),
+        (ing) => matchesQuery(ing) && !used.has(ing.name.trim().toLowerCase()),
       )
     : []
+  // Gäbe es einen Treffer, der nur wegen „schon verwendet" ausgeblendet wird?
+  const hiddenByUse =
+    suggestion &&
+    matches.length === 0 &&
+    (ingredients || []).some(
+      (ing) => matchesQuery(ing) && used.has(ing.name.trim().toLowerCase()),
+    )
 
   const pickSuggestion = (name) => {
     const before = step.text.slice(0, suggestion.start)
@@ -614,7 +629,9 @@ function StepEditor({
               ))
             ) : (
               <p className="text-xs text-cocoa-400 px-2.5 py-1.5">
-                Keine passende Zutat
+                {hiddenByUse
+                  ? 'Schon in der Beschreibung verwendet'
+                  : 'Keine passende Zutat'}
               </p>
             )}
           </div>

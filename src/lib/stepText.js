@@ -47,3 +47,18 @@ export function resolveStepText(text, ingredients, portions) {
   }
   return segments
 }
+
+// Collects every `[Ingredient]` reference across all step texts, lowercased and
+// trimmed. The editor uses this so each ingredient can only be inserted once in
+// the whole description — regardless of which step it already sits in.
+export function referencedIngredientNames(steps) {
+  const names = new Set()
+  for (const step of steps || []) {
+    const re = new RegExp(REF.source, 'g')
+    let match
+    while ((match = re.exec(step.text || ''))) {
+      names.add(match[1].trim().toLowerCase())
+    }
+  }
+  return names
+}
