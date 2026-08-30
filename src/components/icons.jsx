@@ -167,3 +167,17 @@ export const BookIcon = (p) => (
     <path d="M4 5v14" />
   </svg>
 )
+
+export const RotateIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M21 12a9 9 0 1 1-3-6.7" />
+    <path d="M21 3v6h-6" />
+  </svg>
+)
+
+export const CropIcon = (p) => (
+  <svg {...base} {...p}>
+    <path d="M6 2v14a2 2 0 0 0 2 2h14" />
+    <path d="M18 22V8a2 2 0 0 0-2-2H2" />
+  </svg>
+)

@@ -6,10 +6,12 @@ import {
   ArrowLeftIcon,
   CameraIcon,
   CheckIcon,
+  CropIcon,
   PlusIcon,
   TrashIcon,
   XIcon,
 } from './icons'
+import ImageEditor from './ImageEditor'
 import StepText from './StepText'
 
 // Tiefe Kopie, damit Änderungen das gespeicherte Rezept erst beim Speichern
@@ -75,6 +77,20 @@ export default function RecipeForm({ initial, onCancel, onSave }) {
     } catch (err) {
       console.error(err)
       alert('Das Bild konnte nicht hinzugefügt werden: ' + (err.message || err))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  // Vom Bild-Editor (Drehen/Zuschneiden) zurückgegebene Datei hochladen.
+  const applyEditedImage = async (file) => {
+    try {
+      setUploading(true)
+      const url = await uploadImage(file)
+      patch({ image: url })
+    } catch (err) {
+      console.error(err)
+      alert('Das Bild konnte nicht bearbeitet werden: ' + (err.message || err))
     } finally {
       setUploading(false)
     }
@@ -225,6 +241,7 @@ export default function RecipeForm({ initial, onCancel, onSave }) {
           uploading={uploading}
           onPick={onPickImage}
           onRemove={() => patch({ image: null })}
+          onApplyEdit={applyEditedImage}
         />
       </div>
 
@@ -346,19 +363,40 @@ export default function RecipeForm({ initial, onCancel, onSave }) {
   )
 }
 
-function ImagePicker({ image, uploading, onPick, onRemove }) {
+function ImagePicker({ image, uploading, onPick, onRemove, onApplyEdit }) {
+  const [editing, setEditing] = useState(false)
   return (
     <div>
       {image ? (
         <div className="relative rounded-2xl overflow-hidden shadow-soft">
           <img src={image} alt="" className="w-full max-h-64 object-cover" />
-          <button
-            onClick={onRemove}
-            className="absolute top-2 right-2 grid place-items-center w-9 h-9 rounded-full bg-cocoa-800/60 text-white hover:bg-cocoa-800 backdrop-blur"
-            aria-label="Foto entfernen"
-          >
-            <XIcon width={18} height={18} />
-          </button>
+          <div className="absolute top-2 right-2 flex gap-2">
+            <button
+              onClick={() => setEditing(true)}
+              className="grid place-items-center w-9 h-9 rounded-full bg-cocoa-800/60 text-white hover:bg-cocoa-800 backdrop-blur"
+              aria-label="Bild drehen oder zuschneiden"
+            >
+              <CropIcon width={17} height={17} />
+            </button>
+            <button
+              onClick={onRemove}
+              className="grid place-items-center w-9 h-9 rounded-full bg-cocoa-800/60 text-white hover:bg-cocoa-800 backdrop-blur"
+              aria-label="Foto entfernen"
+            >
+              <XIcon width={18} height={18} />
+            </button>
+          </div>
+          {editing && (
+            <ImageEditor
+              src={image}
+              busy={uploading}
+              onCancel={() => setEditing(false)}
+              onApply={async (file) => {
+                await onApplyEdit(file)
+                setEditing(false)
+              }}
+            />
+          )}
         </div>
       ) : (
         <label className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-cream-200 bg-cream-50 py-8 cursor-pointer hover:border-terracotta-300 hover:bg-terracotta-50/40 transition">
