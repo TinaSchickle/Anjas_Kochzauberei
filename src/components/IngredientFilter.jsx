@@ -1,5 +1,11 @@
 import { useState } from 'react'
-import { CheckIcon, ChevronDownIcon, FilterIcon } from './icons'
+import {
+  CheckIcon,
+  ChevronDownIcon,
+  FilterIcon,
+  SearchIcon,
+  XIcon,
+} from './icons'
 
 // Checkbox-Filter. Jede Zutat, die in irgendeinem Rezept vorkommt, wird zur
 // Checkbox; mehrere anhaken grenzt auf Rezepte ein, die ALLE davon enthalten.
@@ -10,13 +16,24 @@ export default function IngredientFilter({
   onClear,
 }) {
   const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
   const selectedSet = new Set(selected)
+
+  const needle = q.trim().toLowerCase()
+  const shown = needle
+    ? allIngredients.filter((i) => i.label.toLowerCase().includes(needle))
+    : allIngredients
 
   return (
     <div className="card p-3 sm:p-4">
       <div className="flex items-center justify-between gap-3">
         <button
-          onClick={() => setOpen((o) => !o)}
+          onClick={() =>
+            setOpen((o) => {
+              if (o) setQ('')
+              return !o
+            })
+          }
           className="flex items-center gap-2 font-semibold text-cocoa-700"
         >
           <FilterIcon width={18} height={18} className="text-cocoa-400" />
@@ -66,36 +83,67 @@ export default function IngredientFilter({
               hinzufügst.
             </p>
           ) : (
-            <div className="max-h-64 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-1 pr-1">
-              {allIngredients.map(({ key, label }) => {
-                const on = selectedSet.has(key)
-                return (
-                  <label
-                    key={key}
-                    className="inline-flex items-center gap-2 cursor-pointer select-none rounded-xl px-2.5 py-2 hover:bg-cream-100"
+            <>
+              <div className="flex items-center gap-2 mb-2 rounded-xl border border-cream-200 bg-white/80 px-3 py-2">
+                <SearchIcon
+                  width={16}
+                  height={16}
+                  className="text-cocoa-400 flex-shrink-0"
+                />
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Zutat suchen…"
+                  className="flex-1 min-w-0 bg-transparent text-sm text-cocoa-800 placeholder-cocoa-400/70 focus:outline-none"
+                  aria-label="Zutatenliste durchsuchen"
+                />
+                {q && (
+                  <button
+                    onClick={() => setQ('')}
+                    className="text-cocoa-400 hover:text-terracotta-500 flex-shrink-0"
+                    aria-label="Suche löschen"
                   >
-                    <span
-                      className={`grid place-items-center w-5 h-5 rounded-md border-2 flex-shrink-0 transition ${
-                        on
-                          ? 'bg-sage-500 border-sage-500 text-white'
-                          : 'border-cream-200 bg-white'
-                      }`}
-                    >
-                      {on && <CheckIcon width={13} height={13} />}
-                    </span>
-                    <span className="text-cocoa-800 capitalize truncate">
-                      {label}
-                    </span>
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={on}
-                      onChange={() => onToggle(key)}
-                    />
-                  </label>
-                )
-              })}
-            </div>
+                    <XIcon width={16} height={16} />
+                  </button>
+                )}
+              </div>
+              {shown.length === 0 ? (
+                <p className="text-sm text-cocoa-400 py-2">
+                  Keine Zutat gefunden.
+                </p>
+              ) : (
+                <div className="max-h-64 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 gap-1 pr-1">
+                  {shown.map(({ key, label }) => {
+                    const on = selectedSet.has(key)
+                    return (
+                      <label
+                        key={key}
+                        className="inline-flex items-center gap-2 cursor-pointer select-none rounded-xl px-2.5 py-2 hover:bg-cream-100"
+                      >
+                        <span
+                          className={`grid place-items-center w-5 h-5 rounded-md border-2 flex-shrink-0 transition ${
+                            on
+                              ? 'bg-sage-500 border-sage-500 text-white'
+                              : 'border-cream-200 bg-white'
+                          }`}
+                        >
+                          {on && <CheckIcon width={13} height={13} />}
+                        </span>
+                        <span className="text-cocoa-800 capitalize truncate">
+                          {label}
+                        </span>
+                        <input
+                          type="checkbox"
+                          className="sr-only"
+                          checked={on}
+                          onChange={() => onToggle(key)}
+                        />
+                      </label>
+                    )
+                  })}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

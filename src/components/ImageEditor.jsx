@@ -12,10 +12,14 @@ import { CheckIcon, RotateIcon, XIcon } from './icons'
 async function loadImage(src) {
   let url = src
   let revoke = null
+  let type = ''
   if (/^https?:/i.test(src)) {
     const blob = await fetch(src, { mode: 'cors' }).then((r) => r.blob())
+    type = blob.type
     url = URL.createObjectURL(blob)
     revoke = url
+  } else if (src.startsWith('data:')) {
+    type = src.slice(5, src.search(/[;,]/))
   }
   try {
     const img = await new Promise((resolve, reject) => {
@@ -24,7 +28,7 @@ async function loadImage(src) {
       i.onerror = () => reject(new Error('Bild konnte nicht geladen werden'))
       i.src = url
     })
-    return { img, revoke }
+    return { img, revoke, type }
   } catch (err) {
     if (revoke) URL.revokeObjectURL(revoke)
     throw err
@@ -168,9 +172,18 @@ export default function ImageEditor({ src, busy, onCancel, onApply }) {
       out.width = sw
       out.height = sh
       out.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, sw, sh)
-      const blob = await new Promise((res) => out.toBlob(res, 'image/jpeg', 0.9))
+      // In voller Pixelauflösung ausgeben (kein Downscaling). PNG-Quellen
+      // verlustfrei behalten (z. B. Screenshots), Fotos als JPEG mit hoher
+      // Qualität statt der bisherigen 0.9.
+      const png = baseRef.current?.type === 'image/png'
+      const mime = png ? 'image/png' : 'image/jpeg'
+      const blob = await new Promise((res) =>
+        out.toBlob(res, mime, png ? undefined : 0.95),
+      )
       if (!blob) throw new Error('Bild konnte nicht erzeugt werden')
-      await onApply(new File([blob], 'bearbeitet.jpg', { type: 'image/jpeg' }))
+      await onApply(
+        new File([blob], `bearbeitet.${png ? 'png' : 'jpg'}`, { type: mime }),
+      )
     } catch (e) {
       setErr(e.message || String(e))
     }
