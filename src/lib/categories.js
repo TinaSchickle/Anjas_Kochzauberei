@@ -8,6 +8,7 @@ export const CATEGORIES = [
   { id: 'snacks', label: 'Snacks', emoji: '\u{1F37F}' }, // 🍿
   { id: 'party', label: 'Party', emoji: '\u{1F389}' }, // 🎉
   { id: 'aufstriche', label: 'Aufstriche', emoji: '\u{1F9C8}' }, // 🧈
+  { id: 'dip-sosse', label: 'Dip & Soße', emoji: '\u{1F963}' }, // 🥣
   { id: 'drinks', label: 'Drinks', emoji: '\u{1F379}' }, // 🍹
   { id: 'todo', label: 'TODO', emoji: '\u{1F4DD}' }, // 📝
 ]

@@ -10,7 +10,7 @@ Schritt darunter.
   jede Mengenangabe skaliert live mit. `200 g` ×3 → `600 g`. Mengen sind Freitext,
   daher bleibt „Salz“ ohne Zahl einfach „Salz“.
 - **Kategorien** — Mahlzeit · Süße Mahlzeit · Nachtisch · Kuchen · Vorspeisen ·
-  Snacks · Party · Aufstriche · Drinks (pro Rezept gewählt).
+  Snacks · Party · Aufstriche · Dip & Soße · Drinks (pro Rezept gewählt).
 - **Arbeitszeit** — optionale Angabe in Minuten (reine Arbeitszeit ohne
   Warten/Backen); wird auf der Rezeptseite gezeigt, wenn gesetzt.
 - **Übersicht** aller Rezepte als **Foto-Galerie** oder **Titelliste**.
