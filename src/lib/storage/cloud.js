@@ -31,6 +31,7 @@ function rowToRecipe(row) {
     image: row.image_url || null,
     serves: row.serves ?? null,
     makes: row.makes ?? null,
+    workMinutes: row.work_minutes ?? null,
     versucherle: row.versucherle ?? false,
     comment: row.comment || '',
     ingredients: row.ingredients || [],
@@ -48,6 +49,7 @@ function recipeToRow(recipe) {
     image_url: recipe.image || null,
     serves: recipe.serves ?? null,
     makes: recipe.makes ?? null,
+    work_minutes: recipe.workMinutes ?? null,
     versucherle: recipe.versucherle ?? false,
     comment: recipe.comment || '',
     ingredients: recipe.ingredients || [],
@@ -76,7 +78,13 @@ export async function getRecipe(id) {
 }
 
 // Optionale Spalten, die es in einer älteren Datenbank evtl. noch nicht gibt.
-const OPTIONAL_COLUMNS = ['serves', 'makes', 'versucherle', 'comment']
+const OPTIONAL_COLUMNS = [
+  'serves',
+  'makes',
+  'work_minutes',
+  'versucherle',
+  'comment',
+]
 
 export async function saveRecipe(recipe) {
   let attempt = recipeToRow(recipe)

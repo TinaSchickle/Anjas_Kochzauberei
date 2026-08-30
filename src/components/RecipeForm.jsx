@@ -253,6 +253,34 @@ export default function RecipeForm({ initial, onCancel, onSave, onPersist }) {
           Feld leer lassen, um es auszublenden.
         </p>
 
+        <label className="block text-sm font-bold text-cocoa-600 mt-5 mb-2">
+          Arbeitszeit
+        </label>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-2">
+          <input
+            type="number"
+            min={1}
+            inputMode="numeric"
+            value={recipe.workMinutes ?? ''}
+            onChange={(e) =>
+              patch({
+                workMinutes:
+                  e.target.value === ''
+                    ? null
+                    : Math.max(1, Math.floor(Number(e.target.value) || 1)),
+              })
+            }
+            placeholder="30"
+            className="field w-20 text-center"
+            aria-label="Aktive Arbeitszeit in Minuten"
+          />
+          <span className="text-cocoa-600">Minuten</span>
+        </div>
+        <p className="text-xs text-cocoa-400 mt-1">
+          Optional — reine Arbeitszeit ohne Warten/Backen. Leer lassen, um es
+          auszublenden.
+        </p>
+
         <label className="flex items-center gap-3 mt-5 cursor-pointer select-none w-fit">
           <span
             className={`grid place-items-center w-6 h-6 rounded-lg border-2 flex-shrink-0 transition ${

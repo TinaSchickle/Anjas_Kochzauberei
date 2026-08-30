@@ -11,6 +11,8 @@ Schritt darunter.
   daher bleibt „Salz“ ohne Zahl einfach „Salz“.
 - **Kategorien** — Mahlzeit · Nachtisch · Kuchen · Vorspeisen · Partysnacks ·
   Aufstriche (pro Rezept gewählt).
+- **Arbeitszeit** — optionale Angabe in Minuten (reine Arbeitszeit ohne
+  Warten/Backen); wird auf der Rezeptseite gezeigt, wenn gesetzt.
 - **Übersicht** aller Rezepte als **Foto-Galerie** oder **Titelliste**.
 - **Zutatenfilter** — Checkbox-Liste aus allen Zutaten deiner Rezepte; mehrere
   anhaken findet Rezepte, die *alle* davon enthalten.

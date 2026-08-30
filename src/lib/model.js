@@ -20,6 +20,7 @@ export function newRecipe() {
     // Menge bei ×1 Portion — beide optional, beide skalieren mit den Portionen.
     serves: 4, // "für N Personen"
     makes: null, // "ergibt N Stück"
+    workMinutes: null, // optionale Arbeitszeit in Minuten (skaliert NICHT mit Portionen)
     versucherle: false, // "A Versucherle" — noch nicht erprobt / zum Ausprobieren
     comment: '', // wird über der Zutatenliste gezeigt, nur wenn nicht leer
     ingredients: [newIngredient()],

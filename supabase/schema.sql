@@ -18,9 +18,10 @@ create table if not exists public.anja_recipes (
   title       text not null default '',
   category    text not null default 'deftig',
   image_url   text,
-  serves      integer,
-  makes       integer,
-  versucherle boolean not null default false,
+  serves       integer,
+  makes        integer,
+  work_minutes integer,
+  versucherle  boolean not null default false,
   comment     text not null default '',
   ingredients jsonb not null default '[]'::jsonb,
   steps       jsonb not null default '[]'::jsonb,
@@ -28,8 +29,9 @@ create table if not exists public.anja_recipes (
   updated_at  timestamptz not null default now()
 );
 
--- Ergänzt die Spalte für Projekte, die vor ihr angelegt wurden (mehrfach ausführbar).
+-- Ergänzt Spalten für Projekte, die vor ihnen angelegt wurden (mehrfach ausführbar).
 alter table public.anja_recipes add column if not exists versucherle boolean not null default false;
+alter table public.anja_recipes add column if not exists work_minutes integer;
 
 create index if not exists anja_recipes_created_at_idx
   on public.anja_recipes (created_at desc);

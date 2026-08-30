@@ -318,6 +318,12 @@ export default function RecipeView({
                   Ergibt {formatPortions(recipe.makes * portions)} Stück
                 </p>
               ) : null}
+              {recipe.workMinutes ? (
+                <p className="text-sm text-cocoa-600 mt-1 sm:text-right">
+                  <span aria-hidden>{'\u{23F1}\u{FE0F}'} </span>
+                  Arbeitszeit {recipe.workMinutes} Min.
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
