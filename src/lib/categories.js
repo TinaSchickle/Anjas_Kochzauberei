@@ -1,6 +1,7 @@
 // Die Kategorie-Tabs in Anzeigereihenfolge. `id` wird am Rezept gespeichert.
 export const CATEGORIES = [
   { id: 'deftig', label: 'Mahlzeit', emoji: '\u{1F372}' }, // 🍲
+  { id: 'suesse-mahlzeit', label: 'Süße Mahlzeit', emoji: '\u{1F95E}' }, // 🥞
   { id: 'nachtisch', label: 'Nachtisch', emoji: '\u{1F36E}' }, // 🍮
   { id: 'kuchen', label: 'Kuchen', emoji: '\u{1F370}' }, // 🍰
   { id: 'vorspeisen', label: 'Vorspeisen', emoji: '\u{1F957}' }, // 🥗

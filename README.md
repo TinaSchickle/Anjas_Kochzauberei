@@ -9,8 +9,8 @@ Schritt darunter.
 - **Portionen-Faktor** — beliebige Zahl in 0,5er-Schritten (Standard & Minimum 1);
   jede Mengenangabe skaliert live mit. `200 g` ×3 → `600 g`. Mengen sind Freitext,
   daher bleibt „Salz“ ohne Zahl einfach „Salz“.
-- **Kategorien** — Mahlzeit · Nachtisch · Kuchen · Vorspeisen · Partysnacks ·
-  Aufstriche (pro Rezept gewählt).
+- **Kategorien** — Mahlzeit · Süße Mahlzeit · Nachtisch · Kuchen · Vorspeisen ·
+  Partysnacks · Aufstriche (pro Rezept gewählt).
 - **Arbeitszeit** — optionale Angabe in Minuten (reine Arbeitszeit ohne
   Warten/Backen); wird auf der Rezeptseite gezeigt, wenn gesetzt.
 - **Übersicht** aller Rezepte als **Foto-Galerie** oder **Titelliste**.
