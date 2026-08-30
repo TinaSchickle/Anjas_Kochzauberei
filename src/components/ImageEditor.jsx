@@ -1,9 +1,11 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { CheckIcon, RotateIcon, XIcon } from './icons'
 
 // Bild-Editor: 90°-Drehen + freies Zuschneiden, komplett im Browser (Canvas),
 // ohne externe Bibliothek. Gibt das Ergebnis als JPEG-File an `onApply` zurück;
-// das Hochladen/Speichern übernimmt die aufrufende Komponente.
+// das Hochladen/Speichern übernimmt die aufrufende Komponente. Das Layout passt
+// sich an jede Bildschirmgröße an (Handy hoch/quer, Tablet, Desktop).
 
 // Lädt das Bild über einen Blob-URL, damit die Canvas nicht durch
 // Cross-Origin-Regeln „getaintet" wird (Supabase-URLs liegen auf anderer Domain).
@@ -33,13 +35,14 @@ const MIN = 24 // kleinste zulässige Zuschnitt-Kante in Anzeige-Pixeln
 
 export default function ImageEditor({ src, busy, onCancel, onApply }) {
   const canvasRef = useRef(null)
-  const frameRef = useRef(null) // umgebender Kasten für die Breitenmessung
+  const frameRef = useRef(null) // Bereich, in den das Bild passen muss
   const baseRef = useRef(null) // { img, revoke }
   const dispRef = useRef({ w: 0, h: 0 })
   const [rotation, setRotation] = useState(0) // 0 | 90 | 180 | 270
   const [ready, setReady] = useState(false)
   const [err, setErr] = useState(null)
   const [box, setBox] = useState(null) // { x, y, w, h } in Anzeige-Pixeln
+  const [bump, setBump] = useState(0) // erzwingt Neuberechnung bei Größenänderung
 
   // Basisbild einmal laden.
   useEffect(() => {
@@ -60,13 +63,29 @@ export default function ImageEditor({ src, busy, onCancel, onApply }) {
     }
   }, [src])
 
-  // Bei jeder Drehung das gedrehte Bild in die Canvas zeichnen und die
-  // Anzeigegröße so wählen, dass es in den Dialog passt.
+  // Auf jede Größenänderung des verfügbaren Bereichs reagieren.
+  useEffect(() => {
+    const el = frameRef.current
+    if (!el) return
+    const ro = new ResizeObserver(() => setBump((b) => b + 1))
+    ro.observe(el)
+    const onResize = () => setBump((b) => b + 1)
+    window.addEventListener('resize', onResize)
+    window.addEventListener('orientationchange', onResize)
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('resize', onResize)
+      window.removeEventListener('orientationchange', onResize)
+    }
+  }, [ready])
+
+  // Gedrehtes Bild zeichnen und so skalieren, dass es exakt in den Bereich passt.
   useLayoutEffect(() => {
     if (!ready || err) return
-    const { img } = baseRef.current
+    const frame = frameRef.current
     const canvas = canvasRef.current
-    if (!canvas) return
+    if (!frame || !canvas) return
+    const { img } = baseRef.current
     const swap = rotation % 180 !== 0
     const natW = swap ? img.naturalHeight : img.naturalWidth
     const natH = swap ? img.naturalWidth : img.naturalHeight
@@ -79,18 +98,18 @@ export default function ImageEditor({ src, busy, onCancel, onApply }) {
     ctx.drawImage(img, -img.naturalWidth / 2, -img.naturalHeight / 2)
     ctx.restore()
 
-    const avail = Math.max(
-      120,
-      (frameRef.current?.clientWidth || 320) - 4,
-    )
-    const scale = Math.min(avail / natW, (window.innerHeight * 0.55) / natH, 1)
-    const dispW = Math.round(natW * scale)
-    const dispH = Math.round(natH * scale)
+    const r = frame.getBoundingClientRect()
+    const availW = Math.max(60, r.width - 8) // minus Innenabstand p-2
+    const availH = Math.max(60, r.height - 8)
+    // Kleine Bilder nicht hochskalieren (scale ≤ 1) → Größe bleibt „ehrlich".
+    const scale = Math.min(availW / natW, availH / natH, 1)
+    const dispW = Math.max(1, Math.round(natW * scale))
+    const dispH = Math.max(1, Math.round(natH * scale))
     canvas.style.width = dispW + 'px'
     canvas.style.height = dispH + 'px'
     dispRef.current = { w: dispW, h: dispH }
     setBox({ x: 0, y: 0, w: dispW, h: dispH })
-  }, [ready, err, rotation])
+  }, [ready, err, rotation, bump])
 
   const rotate = () => setRotation((r) => (r + 90) % 360)
 
@@ -166,16 +185,19 @@ export default function ImageEditor({ src, busy, onCancel, onApply }) {
       box.w < d.w - 0.5 ||
       box.h < d.h - 0.5)
 
-  return (
+  // Als Portal an <body>, damit das Overlay nicht von einem Vorfahren mit
+  // `backdrop-filter` (jede `.card`) als Bezugsrahmen eingefangen wird —
+  // sonst sitzt es verschoben/abgeschnitten statt bildschirmfüllend.
+  return createPortal(
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-cocoa-800/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 grid place-items-center bg-cocoa-800/60 backdrop-blur-sm p-3 sm:p-4"
       onClick={onCancel}
     >
       <div
-        className="card p-4 sm:p-5 max-w-xl w-full"
+        className="card w-full max-w-md flex flex-col max-h-[92vh] overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between px-4 pt-4 pb-1 shrink-0">
           <h3 className="font-display text-lg font-semibold text-cocoa-800">
             Bild bearbeiten
           </h3>
@@ -189,22 +211,24 @@ export default function ImageEditor({ src, busy, onCancel, onApply }) {
         </div>
 
         {err ? (
-          <p className="text-sm text-terracotta-600 py-8 text-center">{err}</p>
+          <p className="text-sm text-terracotta-600 px-4 py-10 text-center">
+            {err}
+          </p>
         ) : !ready ? (
-          <p className="text-sm text-cocoa-400 py-8 text-center">
+          <p className="text-sm text-cocoa-400 px-4 py-10 text-center">
             Bild wird geladen…
           </p>
         ) : (
           <>
-            <p className="text-xs text-cocoa-400 mb-2">
+            <p className="px-4 text-xs text-cocoa-400 shrink-0">
               Ecken ziehen zum Zuschneiden, Rahmen ziehen zum Verschieben.
             </p>
             <div
               ref={frameRef}
-              className="flex justify-center bg-cream-100 rounded-2xl p-2 overflow-hidden"
+              className="flex-1 min-h-[200px] mx-3 my-2 p-1 bg-cream-100 rounded-2xl overflow-hidden flex items-center justify-center"
             >
               <div
-                className="relative inline-block select-none leading-none"
+                className="relative leading-none select-none"
                 style={{ touchAction: 'none' }}
               >
                 <canvas ref={canvasRef} className="block rounded-lg" />
@@ -225,12 +249,12 @@ export default function ImageEditor({ src, busy, onCancel, onApply }) {
                       <span
                         key={corner}
                         onPointerDown={startDrag(corner)}
-                        className="absolute w-5 h-5 bg-white rounded-full shadow border border-cocoa-300"
+                        className="absolute w-6 h-6 bg-white rounded-full shadow border border-cocoa-300"
                         style={{
-                          left: corner.includes('w') ? -10 : undefined,
-                          right: corner.includes('e') ? -10 : undefined,
-                          top: corner.includes('n') ? -10 : undefined,
-                          bottom: corner.includes('s') ? -10 : undefined,
+                          left: corner.includes('w') ? -12 : undefined,
+                          right: corner.includes('e') ? -12 : undefined,
+                          top: corner.includes('n') ? -12 : undefined,
+                          bottom: corner.includes('s') ? -12 : undefined,
                           cursor: `${corner}-resize`,
                           touchAction: 'none',
                         }}
@@ -241,19 +265,26 @@ export default function ImageEditor({ src, busy, onCancel, onApply }) {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 mt-4">
-              <button onClick={rotate} disabled={busy} className="btn-ghost">
+            <div className="flex flex-wrap items-center gap-2 px-4 pb-4 pt-1 shrink-0">
+              <button
+                onClick={rotate}
+                disabled={busy}
+                className="btn-ghost w-full sm:w-auto sm:mr-auto"
+              >
                 <RotateIcon width={18} height={18} />
                 90° drehen
               </button>
-              <div className="flex-1" />
-              <button onClick={onCancel} disabled={busy} className="btn-ghost">
+              <button
+                onClick={onCancel}
+                disabled={busy}
+                className="btn-ghost flex-1 sm:flex-none"
+              >
                 Abbrechen
               </button>
               <button
                 onClick={apply}
                 disabled={busy || !box}
-                className="btn-primary"
+                className="btn-primary flex-1 sm:flex-none"
               >
                 <CheckIcon width={18} height={18} />
                 {busy ? 'Speichern…' : cropChanged ? 'Übernehmen' : 'Fertig'}
@@ -262,6 +293,7 @@ export default function ImageEditor({ src, busy, onCancel, onApply }) {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
