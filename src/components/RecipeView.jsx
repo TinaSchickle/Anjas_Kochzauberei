@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import { CATEGORY_MAP } from '../lib/categories'
 import { scaleAmount } from '../lib/scale'
@@ -155,26 +155,60 @@ export default function RecipeView({
   const [busy, setBusy] = useState(null) // null | 'pdf' | 'print'
   const cat = CATEGORY_MAP[recipe.category]
   const shareRef = useRef(null)
+  const pdfRef = useRef(null) // { recipe, portions, promise }
+
+  const buildPdf = () => {
+    const cached = pdfRef.current
+    if (cached && cached.recipe === recipe && cached.portions === portions) {
+      return cached.promise
+    }
+    const promise = renderRecipeCanvas(recipe, portions)
+      .then(canvasToPdfBlob)
+      .catch((err) => {
+        if (pdfRef.current?.promise === promise) pdfRef.current = null
+        throw err
+      })
+    pdfRef.current = { recipe, portions, promise }
+    return promise
+  }
+
+  // PDF schon vorab erzeugen: Auf langsameren Handys dauert das Rendern länger
+  // als das Zeitfenster der Nutzer-Geste, und navigator.share() schlägt dann
+  // mit "Permission denied" (NotAllowedError) fehl.
+  useEffect(() => {
+    const t = setTimeout(() => buildPdf().catch(() => {}), 600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipe, portions])
+
+  const downloadBlob = (blob, filename) => {
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = filename
+    a.click()
+    setTimeout(() => URL.revokeObjectURL(url), 10000)
+  }
 
   const handleShare = async () => {
     if (!shareRef.current || busy) return
     setBusy('pdf')
+    let blob
+    const filename = `${safeName(recipe.title)}.pdf`
     try {
-      const canvas = await renderRecipeCanvas(recipe, portions)
-      const blob = await canvasToPdfBlob(canvas)
-      const filename = `${safeName(recipe.title)}.pdf`
+      blob = await buildPdf()
       const file = new File([blob], filename, { type: 'application/pdf' })
       if (navigator.canShare && navigator.canShare({ files: [file] })) {
         await navigator.share({ files: [file], title: recipe.title || 'Rezept' })
       } else {
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = filename
-        a.click()
-        URL.revokeObjectURL(url)
+        downloadBlob(blob, filename)
       }
     } catch (err) {
+      if (err?.name === 'NotAllowedError' && blob) {
+        // Share-Dialog vom Browser verweigert → PDF stattdessen speichern
+        downloadBlob(blob, filename)
+        return
+      }
       if (err?.name !== 'AbortError') {
         console.error(err)
         alert('Teilen hat nicht geklappt: ' + (err.message || err))
