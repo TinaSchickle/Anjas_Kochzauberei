@@ -164,6 +164,10 @@ export default function RecipeView({
     }
     const promise = renderRecipeCanvas(recipe, portions)
       .then(canvasToPdfBlob)
+      .then((b) => {
+        if (pdfRef.current?.promise === promise) pdfRef.current.done = true
+        return b
+      })
       .catch((err) => {
         if (pdfRef.current?.promise === promise) pdfRef.current = null
         throw err
@@ -195,10 +199,19 @@ export default function RecipeView({
     setBusy('pdf')
     let blob
     const filename = `${safeName(recipe.title)}.pdf`
+    const t0 = performance.now()
+    const diag = {
+      aktivBeimTippen: navigator.userActivation?.isActive,
+      vorabFertig: pdfRef.current?.done === true,
+    }
     try {
       blob = await buildPdf()
+      diag.renderMs = Math.round(performance.now() - t0)
+      diag.aktivNachRender = navigator.userActivation?.isActive
+      diag.pdfKB = Math.round(blob.size / 1024)
       const file = new File([blob], filename, { type: 'application/pdf' })
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      diag.canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }))
+      if (diag.canShare) {
         await navigator.share({ files: [file], title: recipe.title || 'Rezept' })
       } else {
         downloadBlob(blob, filename)
@@ -207,6 +220,20 @@ export default function RecipeView({
       if (err?.name === 'NotAllowedError' && blob) {
         // Share-Dialog vom Browser verweigert → PDF stattdessen speichern
         downloadBlob(blob, filename)
+        diag.fehler = `${err.name}: ${err.message}`
+        diag.appModus = window.matchMedia('(display-mode: standalone)').matches
+          ? 'installiert'
+          : 'browser'
+        diag.sicher = window.isSecureContext
+        diag.browser = navigator.userAgent
+        setTimeout(
+          () =>
+            alert(
+              'PDF wurde gespeichert. Bitte Screenshot dieser Meldung an Tina schicken:\n\n' +
+                JSON.stringify(diag, null, 1),
+            ),
+          500,
+        )
         return
       }
       if (err?.name !== 'AbortError') {
