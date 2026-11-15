@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import { CATEGORY_MAP } from '../lib/categories'
 import { scaleAmount } from '../lib/scale'
@@ -156,14 +156,6 @@ export default function RecipeView({
   const cat = CATEGORY_MAP[recipe.category]
   const shareRef = useRef(null)
   const pdfRef = useRef(null) // { recipe, portions, promise }
-  const [textShare, setTextShare] = useState(() => {
-    try {
-      return localStorage.getItem('shareFilesBlocked') === '1'
-    } catch {
-      return false
-    }
-  })
-
   const handleShareImage = async () => {
     if (busy) return
     setBusy('pdf')
@@ -225,15 +217,6 @@ export default function RecipeView({
     return promise
   }
 
-  // PDF schon vorab erzeugen: Auf langsameren Handys dauert das Rendern länger
-  // als das Zeitfenster der Nutzer-Geste, und navigator.share() schlägt dann
-  // mit "Permission denied" (NotAllowedError) fehl.
-  useEffect(() => {
-    const t = setTimeout(() => buildPdf().catch(() => {}), 600)
-    return () => clearTimeout(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [recipe, portions])
-
   const downloadBlob = (blob, filename) => {
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -243,67 +226,11 @@ export default function RecipeView({
     setTimeout(() => URL.revokeObjectURL(url), 10000)
   }
 
-  const handleShare = async () => {
-    if (!shareRef.current || busy) return
-    // Auf Geräten, die PDF-Dateien aus dem Browser nicht teilen lassen,
-    // wird das Rezept stattdessen als Bild geteilt.
-    if (textShare) return handleShareImage()
-    setBusy('pdf')
-    let blob
-    const filename = `${safeName(recipe.title)}.pdf`
-    const t0 = performance.now()
-    const diag = {
-      aktivBeimTippen: navigator.userActivation?.isActive,
-      vorabFertig: pdfRef.current?.done === true,
-    }
-    try {
-      blob = await buildPdf()
-      diag.renderMs = Math.round(performance.now() - t0)
-      diag.aktivNachRender = navigator.userActivation?.isActive
-      diag.pdfKB = Math.round(blob.size / 1024)
-      const file = new File([blob], filename, { type: 'application/pdf' })
-      diag.canShare = !!(navigator.canShare && navigator.canShare({ files: [file] }))
-      if (diag.canShare) {
-        await navigator.share({ files: [file], title: recipe.title || 'Rezept' })
-      } else {
-        downloadBlob(blob, filename)
-      }
-    } catch (err) {
-      if (err?.name === 'NotAllowedError' && blob) {
-        // Share-Dialog vom Browser verweigert → PDF stattdessen speichern
-        downloadBlob(blob, filename)
-        diag.fehler = `${err.name}: ${err.message}`
-        diag.appModus = window.matchMedia('(display-mode: standalone)').matches
-          ? 'installiert'
-          : 'browser'
-        diag.sicher = window.isSecureContext
-        diag.browser = navigator.userAgent
-        console.warn('Teilen verweigert', diag)
-        try {
-          localStorage.setItem('shareFilesBlocked', '1')
-        } catch {
-          /* ignorieren */
-        }
-        setTextShare(true)
-        setTimeout(
-          () =>
-            alert(
-              'Das PDF wurde gespeichert. Auf diesem Handy ist das Teilen von ' +
-                'PDF-Dateien gesperrt. Ab jetzt teilt der Teilen-Button das ' +
-                'Rezept als Bild. Zusätzlich gibt es die Buttons „PDF" ' +
-                '(speichern) und „Text".',
-            ),
-          500,
-        )
-        return
-      }
-      if (err?.name !== 'AbortError') {
-        console.error(err)
-        alert('Teilen hat nicht geklappt: ' + (err.message || err))
-      }
-    } finally {
-      setBusy(null)
-    }
+  // Teilen als Bild: Auf manchen Handys (z. B. Galaxy S22+) wird das Teilen von
+  // PDF-Dateien aus dem Browser verweigert, Bilder funktionieren überall.
+  const handleShare = () => {
+    if (!shareRef.current) return
+    return handleShareImage()
   }
 
   const handlePrint = async () => {
@@ -346,7 +273,7 @@ export default function RecipeView({
               {isPlanned ? 'Im Planer' : 'Zum Planer'}
             </span>
           </button>
-          {textShare && (
+          {(
             <>
               <button
                 className="btn-ghost"
