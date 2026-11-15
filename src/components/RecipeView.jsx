@@ -1,8 +1,8 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import { CATEGORY_MAP } from '../lib/categories'
 import { scaleAmount } from '../lib/scale'
-import { buildPrintNode, buildRecipeText, waitForImages } from '../lib/printRecipe'
+import { buildPrintNode, waitForImages } from '../lib/printRecipe'
 import PortionStepper, { formatPortions } from './PortionStepper'
 import StepText from './StepText'
 import {
@@ -156,47 +156,6 @@ export default function RecipeView({
   const cat = CATEGORY_MAP[recipe.category]
   const shareRef = useRef(null)
   const pdfRef = useRef(null) // { recipe, portions, promise }
-  const handleShareImage = async () => {
-    if (busy) return
-    setBusy('pdf')
-    try {
-      const canvas = await renderRecipeCanvas(recipe, portions)
-      const blob = await new Promise((res) =>
-        canvas.toBlob(res, 'image/jpeg', 0.92),
-      )
-      if (!blob) throw new Error('Bild konnte nicht erstellt werden')
-      const file = new File([blob], `${safeName(recipe.title)}.jpg`, {
-        type: 'image/jpeg',
-      })
-      await navigator.share({ files: [file], title: recipe.title || 'Rezept' })
-    } catch (err) {
-      if (err?.name !== 'AbortError') {
-        alert(`Bild teilen hat nicht geklappt: ${err?.name}: ${err?.message}`)
-      }
-    } finally {
-      setBusy(null)
-    }
-  }
-
-  const handleShareText = async () => {
-    const text = buildRecipeText(recipe, portions)
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: recipe.title || 'Rezept', text })
-      } else {
-        await navigator.clipboard.writeText(text)
-        alert('Rezept wurde in die Zwischenablage kopiert.')
-      }
-    } catch (err) {
-      if (err?.name === 'AbortError') return
-      try {
-        await navigator.clipboard.writeText(text)
-        alert('Rezept wurde in die Zwischenablage kopiert.')
-      } catch {
-        alert('Teilen hat nicht geklappt: ' + (err.message || err))
-      }
-    }
-  }
 
   const buildPdf = () => {
     const cached = pdfRef.current
@@ -205,10 +164,6 @@ export default function RecipeView({
     }
     const promise = renderRecipeCanvas(recipe, portions)
       .then(canvasToPdfBlob)
-      .then((b) => {
-        if (pdfRef.current?.promise === promise) pdfRef.current.done = true
-        return b
-      })
       .catch((err) => {
         if (pdfRef.current?.promise === promise) pdfRef.current = null
         throw err
@@ -216,6 +171,15 @@ export default function RecipeView({
     pdfRef.current = { recipe, portions, promise }
     return promise
   }
+
+  // PDF schon vorab erzeugen: Auf langsameren Handys dauert das Rendern länger
+  // als das Zeitfenster der Nutzer-Geste, und navigator.share() schlägt dann
+  // mit "Permission denied" (NotAllowedError) fehl.
+  useEffect(() => {
+    const t = setTimeout(() => buildPdf().catch(() => {}), 600)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [recipe, portions])
 
   const downloadBlob = (blob, filename) => {
     const url = URL.createObjectURL(blob)
@@ -226,11 +190,32 @@ export default function RecipeView({
     setTimeout(() => URL.revokeObjectURL(url), 10000)
   }
 
-  // Teilen als Bild: Auf manchen Handys (z. B. Galaxy S22+) wird das Teilen von
-  // PDF-Dateien aus dem Browser verweigert, Bilder funktionieren überall.
-  const handleShare = () => {
-    if (!shareRef.current) return
-    return handleShareImage()
+  const handleShare = async () => {
+    if (!shareRef.current || busy) return
+    setBusy('pdf')
+    let blob
+    const filename = `${safeName(recipe.title)}.pdf`
+    try {
+      blob = await buildPdf()
+      const file = new File([blob], filename, { type: 'application/pdf' })
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ files: [file], title: recipe.title || 'Rezept' })
+      } else {
+        downloadBlob(blob, filename)
+      }
+    } catch (err) {
+      if (err?.name === 'NotAllowedError' && blob) {
+        // Share-Dialog vom Browser verweigert → PDF stattdessen speichern
+        downloadBlob(blob, filename)
+        return
+      }
+      if (err?.name !== 'AbortError') {
+        console.error(err)
+        alert('Teilen hat nicht geklappt: ' + (err.message || err))
+      }
+    } finally {
+      setBusy(null)
+    }
   }
 
   const handlePrint = async () => {
@@ -273,30 +258,6 @@ export default function RecipeView({
               {isPlanned ? 'Im Planer' : 'Zum Planer'}
             </span>
           </button>
-          {(
-            <>
-              <button
-                className="btn-ghost"
-                onClick={async () => {
-                  if (busy) return
-                  setBusy('pdf')
-                  try {
-                    downloadBlob(await buildPdf(), `${safeName(recipe.title)}.pdf`)
-                  } catch (err) {
-                    alert('PDF hat nicht geklappt: ' + (err.message || err))
-                  } finally {
-                    setBusy(null)
-                  }
-                }}
-                disabled={Boolean(busy)}
-              >
-                PDF
-              </button>
-              <button className="btn-ghost" onClick={handleShareText}>
-                Text
-              </button>
-            </>
-          )}
           <button
             className="btn-ghost"
             onClick={handleShare}
@@ -304,7 +265,7 @@ export default function RecipeView({
           >
             <ShareIcon width={18} height={18} />
             <span className="hidden sm:inline">
-              {busy === 'pdf' ? 'Erstelle…' : 'Teilen'}
+              {busy === 'pdf' ? 'Erstelle PDF…' : 'Teilen'}
             </span>
           </button>
           <button
