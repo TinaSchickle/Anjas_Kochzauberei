@@ -26,6 +26,9 @@
 <button id="t-pdf-small">5. Kleine PDF teilen</button>
 <button id="t-pdf-big">6. Große PDF (ca. 700 KB) teilen</button>
 <button id="t-pdf-notitle">7. Große PDF ohne Titel teilen</button>
+<button id="t-pdf-octet">8. PDF als „Binärdatei" teilen</button>
+<button id="t-pdf-notype">9. PDF ohne Typangabe teilen</button>
+<button id="t-pdf-jpg">10. PDF zusammen mit einem Bild teilen</button>
 
 <h2 style="font-size:16px">Bericht</h2>
 <textarea id="out" readonly></textarea>
@@ -125,6 +128,19 @@ bind('t-pdf-big', () => {
 bind('t-pdf-notitle', () => {
   const b = pdfBlob(700)
   run('7. Große PDF (' + Math.round(b.size / 1024) + ' KB) ohne Titel', { files: [new File([b], 'gross2.pdf', { type: 'application/pdf' })] })
+})
+bind('t-pdf-octet', () => {
+  const b = pdfBlob(700)
+  run('8. PDF als application/octet-stream', { files: [new File([b], 'oct.pdf', { type: 'application/octet-stream' })] })
+})
+bind('t-pdf-notype', () => {
+  const b = pdfBlob(700)
+  run('9. PDF ohne Typ', { files: [new File([b], 'notype.pdf', { type: '' })] })
+})
+bind('t-pdf-jpg', async () => {
+  const j = await jpgBlob()
+  const b = pdfBlob(10)
+  run('10. PDF + JPEG zusammen', { files: [new File([b], 'mix.pdf', { type: 'application/pdf' }), new File([j], 'mix.jpg', { type: 'image/jpeg' })] })
 })
 bind('copy', async () => {
   try { await navigator.clipboard.writeText(out.value); alert('Kopiert.') }

@@ -245,6 +245,9 @@ export default function RecipeView({
 
   const handleShare = async () => {
     if (!shareRef.current || busy) return
+    // Auf Geräten, die PDF-Dateien aus dem Browser nicht teilen lassen,
+    // wird das Rezept stattdessen als Bild geteilt.
+    if (textShare) return handleShareImage()
     setBusy('pdf')
     let blob
     const filename = `${safeName(recipe.title)}.pdf`
@@ -286,9 +289,9 @@ export default function RecipeView({
           () =>
             alert(
               'Das PDF wurde gespeichert. Auf diesem Handy ist das Teilen von ' +
-                'PDF-Dateien gesperrt – oben gibt es jetzt die Buttons „Bild" ' +
-                'und „Text", mit denen du das Rezept als Bild oder als Text ' +
-                'verschicken kannst.',
+                'PDF-Dateien gesperrt. Ab jetzt teilt der Teilen-Button das ' +
+                'Rezept als Bild. Zusätzlich gibt es die Buttons „PDF" ' +
+                '(speichern) und „Text".',
             ),
           500,
         )
@@ -347,10 +350,20 @@ export default function RecipeView({
             <>
               <button
                 className="btn-ghost"
-                onClick={handleShareImage}
+                onClick={async () => {
+                  if (busy) return
+                  setBusy('pdf')
+                  try {
+                    downloadBlob(await buildPdf(), `${safeName(recipe.title)}.pdf`)
+                  } catch (err) {
+                    alert('PDF hat nicht geklappt: ' + (err.message || err))
+                  } finally {
+                    setBusy(null)
+                  }
+                }}
                 disabled={Boolean(busy)}
               >
-                Bild
+                PDF
               </button>
               <button className="btn-ghost" onClick={handleShareText}>
                 Text
@@ -364,7 +377,7 @@ export default function RecipeView({
           >
             <ShareIcon width={18} height={18} />
             <span className="hidden sm:inline">
-              {busy === 'pdf' ? 'Erstelle PDF…' : 'Teilen'}
+              {busy === 'pdf' ? 'Erstelle…' : 'Teilen'}
             </span>
           </button>
           <button
