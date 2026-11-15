@@ -134,3 +134,40 @@ export function waitForImages(node) {
     ),
   )
 }
+
+// Rezept als reiner Text (z. B. für WhatsApp), falls das Teilen der PDF auf
+// dem Gerät nicht erlaubt ist.
+export function buildRecipeText(recipe, portions) {
+  const lines = [recipe.title || 'Rezept ohne Titel', '']
+  const meta = [`Menge: ${fmtPortions(portions)}×`]
+  if (recipe.serves) {
+    const n = recipe.serves * portions
+    meta.push(`Für ${fmtPortions(n)} ${n === 1 ? 'Person' : 'Personen'}`)
+  }
+  if (recipe.makes) meta.push(`Ergibt ${fmtPortions(recipe.makes * portions)} Stück`)
+  if (recipe.workMinutes) meta.push(`Arbeitszeit ${recipe.workMinutes} Min.`)
+  lines.push(meta.join(' · '), '')
+
+  if (recipe.comment && recipe.comment.trim()) {
+    lines.push(recipe.comment.trim(), '')
+  }
+
+  lines.push('Zutaten')
+  for (const ing of recipe.ingredients || []) {
+    if (!(ing.name && ing.name.trim()) && !(ing.amount && ing.amount.trim())) continue
+    const amt = scaleAmount(ing.amount, portions).trim()
+    lines.push(
+      `- ${amt ? amt + ' ' : ''}${ing.name || ''}${ing.optional ? ' (optional)' : ''}`,
+    )
+  }
+  lines.push('', 'Zubereitung')
+  let n = 0
+  for (const step of recipe.steps || []) {
+    if (!(step.text && step.text.trim())) continue
+    const plain = resolveStepText(step.text, recipe.ingredients, portions)
+      .map((seg) => seg.value)
+      .join('')
+    lines.push(`${++n}. ${plain}`)
+  }
+  return lines.join('\n')
+}

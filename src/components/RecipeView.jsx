@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import html2canvas from 'html2canvas'
 import { CATEGORY_MAP } from '../lib/categories'
 import { scaleAmount } from '../lib/scale'
-import { buildPrintNode, waitForImages } from '../lib/printRecipe'
+import { buildPrintNode, buildRecipeText, waitForImages } from '../lib/printRecipe'
 import PortionStepper, { formatPortions } from './PortionStepper'
 import StepText from './StepText'
 import {
@@ -156,6 +156,55 @@ export default function RecipeView({
   const cat = CATEGORY_MAP[recipe.category]
   const shareRef = useRef(null)
   const pdfRef = useRef(null) // { recipe, portions, promise }
+  const [textShare, setTextShare] = useState(() => {
+    try {
+      return localStorage.getItem('shareFilesBlocked') === '1'
+    } catch {
+      return false
+    }
+  })
+
+  const handleShareImage = async () => {
+    if (busy) return
+    setBusy('pdf')
+    try {
+      const canvas = await renderRecipeCanvas(recipe, portions)
+      const blob = await new Promise((res) =>
+        canvas.toBlob(res, 'image/jpeg', 0.92),
+      )
+      if (!blob) throw new Error('Bild konnte nicht erstellt werden')
+      const file = new File([blob], `${safeName(recipe.title)}.jpg`, {
+        type: 'image/jpeg',
+      })
+      await navigator.share({ files: [file], title: recipe.title || 'Rezept' })
+    } catch (err) {
+      if (err?.name !== 'AbortError') {
+        alert(`Bild teilen hat nicht geklappt: ${err?.name}: ${err?.message}`)
+      }
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const handleShareText = async () => {
+    const text = buildRecipeText(recipe, portions)
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: recipe.title || 'Rezept', text })
+      } else {
+        await navigator.clipboard.writeText(text)
+        alert('Rezept wurde in die Zwischenablage kopiert.')
+      }
+    } catch (err) {
+      if (err?.name === 'AbortError') return
+      try {
+        await navigator.clipboard.writeText(text)
+        alert('Rezept wurde in die Zwischenablage kopiert.')
+      } catch {
+        alert('Teilen hat nicht geklappt: ' + (err.message || err))
+      }
+    }
+  }
 
   const buildPdf = () => {
     const cached = pdfRef.current
@@ -226,11 +275,20 @@ export default function RecipeView({
           : 'browser'
         diag.sicher = window.isSecureContext
         diag.browser = navigator.userAgent
+        console.warn('Teilen verweigert', diag)
+        try {
+          localStorage.setItem('shareFilesBlocked', '1')
+        } catch {
+          /* ignorieren */
+        }
+        setTextShare(true)
         setTimeout(
           () =>
             alert(
-              'PDF wurde gespeichert. Bitte Screenshot dieser Meldung an Tina schicken:\n\n' +
-                JSON.stringify(diag, null, 1),
+              'Das PDF wurde gespeichert. Auf diesem Handy ist das Teilen von ' +
+                'PDF-Dateien gesperrt – oben gibt es jetzt die Buttons „Bild" ' +
+                'und „Text", mit denen du das Rezept als Bild oder als Text ' +
+                'verschicken kannst.',
             ),
           500,
         )
@@ -285,6 +343,20 @@ export default function RecipeView({
               {isPlanned ? 'Im Planer' : 'Zum Planer'}
             </span>
           </button>
+          {textShare && (
+            <>
+              <button
+                className="btn-ghost"
+                onClick={handleShareImage}
+                disabled={Boolean(busy)}
+              >
+                Bild
+              </button>
+              <button className="btn-ghost" onClick={handleShareText}>
+                Text
+              </button>
+            </>
+          )}
           <button
             className="btn-ghost"
             onClick={handleShare}
